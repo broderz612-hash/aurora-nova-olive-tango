@@ -1,0 +1,1879 @@
+export type Figure =
+  | { kind: "bars"; values: number[]; labels: string[] }
+  | { kind: "polygon"; values: number[]; labels: string[] }
+  | { kind: "pie"; slices: { label: string; value: number }[] }
+  | { kind: "chips"; values: number[] }
+  | { kind: "table"; headers: [string, string]; rows: [string, string][] };
+
+export type Option = {
+  id: string;
+  label: string;
+  figure?: Figure;
+};
+
+export type Question = {
+  id: string;
+  topic: TopicId;
+  prompt: string;
+  explain: string;
+  figure?: Figure;
+  srFigure?: string;
+  options: Option[];
+  correctId: string;
+};
+
+export const TOPIC_IDS = ["barras", "circular", "poligono", "rango", "media", "moda", "mediana"] as const;
+export type TopicId = (typeof TOPIC_IDS)[number];
+
+export type Tone = {
+  band: string;
+  border: string;
+  fill: string;
+  track: string;
+};
+
+export const TONES: Record<TopicId, Tone> = {
+  barras: { band: "bg-barras text-barras-ink", border: "border-barras", fill: "bg-barras-ink", track: "bg-barras-ink/25" },
+  circular: { band: "bg-circular text-circular-ink", border: "border-circular", fill: "bg-circular-ink", track: "bg-circular-ink/25" },
+  poligono: { band: "bg-poligono text-poligono-ink", border: "border-poligono", fill: "bg-poligono-ink", track: "bg-poligono-ink/25" },
+  rango: { band: "bg-rango text-rango-ink", border: "border-rango", fill: "bg-rango-ink", track: "bg-rango-ink/25" },
+  media: { band: "bg-media text-media-ink", border: "border-media", fill: "bg-media-ink", track: "bg-media-ink/25" },
+  moda: { band: "bg-moda text-moda-ink", border: "border-moda", fill: "bg-moda-ink", track: "bg-moda-ink/25" },
+  mediana: { band: "bg-mediana text-mediana-ink", border: "border-mediana", fill: "bg-mediana-ink", track: "bg-mediana-ink/25" },
+};
+
+export type Topic = {
+  id: TopicId;
+  title: string;
+  body: string;
+  figure: Figure;
+};
+
+export const TOPICS: Topic[] = [
+  {
+    id: "barras",
+    title: "Gráfica de barras",
+    body: "Compara categorías. La barra más alta es la cantidad mayor.",
+    figure: { kind: "bars", values: [4, 9, 6, 3], labels: ["Perro", "Gato", "Ave", "Pez"] },
+  },
+  {
+    id: "circular",
+    title: "Gráfica circular",
+    body: "Reparte un total en partes. El círculo completo es el 100%.",
+    figure: {
+      kind: "pie",
+      slices: [
+        { label: "Fútbol", value: 10 },
+        { label: "Básquet", value: 6 },
+        { label: "Nado", value: 4 },
+      ],
+    },
+  },
+  {
+    id: "poligono",
+    title: "Polígono de frecuencias",
+    body: "Une las frecuencias con una línea. El pico es el dato que más se repite.",
+    figure: { kind: "polygon", values: [2, 5, 8, 4, 1], labels: ["0", "1", "2", "3", "4"] },
+  },
+  {
+    id: "rango",
+    title: "Rango",
+    body: "Dato mayor menos dato menor. Dice qué tan separados están.",
+    figure: { kind: "chips", values: [3, 8, 1, 6] },
+  },
+  {
+    id: "media",
+    title: "Media",
+    body: "El promedio: suma todos los datos y divide entre cuántos son.",
+    figure: { kind: "chips", values: [2, 4, 6, 8] },
+  },
+  {
+    id: "moda",
+    title: "Moda",
+    body: "El dato que más veces aparece. Si ninguno se repite, no hay moda.",
+    figure: { kind: "chips", values: [5, 1, 5, 5, 2] },
+  },
+  {
+    id: "mediana",
+    title: "Mediana",
+    body: "Ordénalos y toma el del centro. Si sobran dos, promedia esos dos.",
+    figure: { kind: "chips", values: [4, 1, 7, 3, 9] },
+  },
+];
+
+export const QUIZ_LENGTH = 8;
+export const TOPIC_LENGTH = 5;
+
+export type MemeTier = {
+  title: string;
+  line: string;
+  image: string;
+  alt: string;
+};
+
+const TIERS: { min: number; tier: MemeTier }[] = [
+  {
+    min: 1,
+    tier: {
+      title: "Leyenda de los datos",
+      line: "Todo claro: barras, circular, polígono, rango, media, moda y mediana.",
+      image: "/memes/legend.jpg",
+      alt: "Estudiante celebrando encima de una montaña de papel cuadriculado",
+    },
+  },
+  {
+    min: 0.8,
+    tier: {
+      title: "Casi profe",
+      line: "Te faltó un detallito. Con un repaso corto, el puntaje perfecto está cerca.",
+      image: "/memes/crack.jpg",
+      alt: "Estudiante con lentes recargado en una recta perfecta",
+    },
+  },
+  {
+    min: 0.6,
+    tier: {
+      title: "Buen ojo para las gráficas",
+      line: "Ya lees las gráficas y calculas con calma. Repasa lo que fallaste y subes.",
+      image: "/memes/good.jpg",
+      alt: "Estudiante sonriente con el pulgar arriba junto a una curva",
+    },
+  },
+  {
+    min: 0.35,
+    tier: {
+      title: "Vas calentando",
+      line: "Varias ideas ya están. Vuelve a mirar el rango, el promedio y el dato del centro.",
+      image: "/memes/warming.jpg",
+      alt: "Estudiante pensativo mirando una línea chueca en papel cuadriculado",
+    },
+  },
+  {
+    min: 0,
+    tier: {
+      title: "Hoy los datos ganaron",
+      line: "Sin drama: ordena los números, resta el mayor menos el menor y mira la barra más alta.",
+      image: "/memes/panic.jpg",
+      alt: "Estudiante abrumado entre hojas de planos cartesianos arrugados",
+    },
+  },
+];
+
+export function memeFor(score: number, total: number): MemeTier {
+  const ratio = total === 0 ? 0 : score / total;
+  for (const row of TIERS) {
+    if (ratio >= row.min) return row.tier;
+  }
+  return TIERS[TIERS.length - 1].tier;
+}
+
+export function topicById(id: TopicId): Topic {
+  return TOPICS.find((topic) => topic.id === id) ?? TOPICS[0];
+}
+
+type Rng = () => number;
+type Item = { label: string; figure?: Figure; correct?: boolean };
+type Builder = (rand: Rng) => Question;
+
+function shuffle<T>(list: T[], rand: Rng): T[] {
+  const copy = [...list];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    const tmp = copy[i];
+    copy[i] = copy[j];
+    copy[j] = tmp;
+  }
+  return copy;
+}
+
+function pick<T>(list: readonly T[], rand: Rng): T {
+  return list[Math.floor(rand() * list.length)];
+}
+
+function nid(rand: Rng): string {
+  return `q-${Math.floor(rand() * 1e9).toString(36)}`;
+}
+
+function sampleDistinct(rand: Rng, count: number, lo = 1, hi = 16): number[] {
+  const pool: number[] = [];
+  for (let n = lo; n <= hi; n++) pool.push(n);
+  return shuffle(pool, rand).slice(0, count);
+}
+
+function sum(values: number[]): number {
+  return values.reduce((total, value) => total + value, 0);
+}
+
+function rangeOf(values: number[]): number {
+  return Math.max(...values) - Math.min(...values);
+}
+
+function sortedCopy(values: number[]): number[] {
+  return [...values].sort((a, b) => a - b);
+}
+
+function medianOf(values: number[]): number {
+  const ordered = sortedCopy(values);
+  const mid = Math.floor(ordered.length / 2);
+  if (ordered.length % 2 === 1) return ordered[mid];
+  return (ordered[mid - 1] + ordered[mid]) / 2;
+}
+
+function modeOf(values: number[]): number | null {
+  const counts = new Map<number, number>();
+  for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
+  let best = 0;
+  let winner: number | null = null;
+  let ties = 0;
+  for (const [value, count] of counts) {
+    if (count > best) {
+      best = count;
+      winner = value;
+      ties = 1;
+    } else if (count === best) ties += 1;
+  }
+  if (best <= 1 || ties > 1) return null;
+  return winner;
+}
+
+function pack(
+  rand: Rng,
+  q: {
+    topic: TopicId;
+    prompt: string;
+    explain: string;
+    figure?: Figure;
+    srFigure?: string;
+    items: Item[];
+  },
+): Question {
+  const options: Option[] = q.items.map((item, index) => ({
+    id: item.correct ? "ok" : `w${index}`,
+    label: item.label,
+    figure: item.figure,
+  }));
+  return {
+    id: nid(rand),
+    topic: q.topic,
+    prompt: q.prompt,
+    explain: q.explain,
+    figure: q.figure,
+    srFigure: q.srFigure,
+    options: shuffle(options, rand),
+    correctId: "ok",
+  };
+}
+
+function numericWrongs(correct: number, pool: number[]): string[] {
+  const out: string[] = [];
+  const push = (value: number) => {
+    if (!Number.isInteger(value) || value < 0 || value === correct) return;
+    const label = String(value);
+    if (out.includes(label)) return;
+    out.push(label);
+  };
+  for (const value of pool) {
+    push(value);
+    if (out.length === 3) return out;
+  }
+  let step = 1;
+  while (out.length < 3 && step < 20) {
+    push(correct + step);
+    push(correct - step);
+    step += 1;
+  }
+  return out.slice(0, 3);
+}
+
+function distinct(question: Question): boolean {
+  const labels = question.options.map((option) => option.label);
+  const ids = question.options.map((option) => option.id);
+  return (
+    question.options.length === 4 &&
+    new Set(labels).size === 4 &&
+    new Set(ids).size === 4 &&
+    question.options.some((option) => option.id === question.correctId)
+  );
+}
+
+function safe(build: Builder, rand: Rng): Question {
+  let last = build(rand);
+  for (let attempt = 0; attempt < 12 && !distinct(last); attempt++) last = build(rand);
+  return last;
+}
+
+const BAR_SCENES = [
+  { thing: "mascota", plural: "mascotas", labels: ["Perro", "Gato", "Ave", "Pez"] },
+  { thing: "fruta", plural: "frutas", labels: ["Mango", "Pera", "Uva", "Kiwi"] },
+  { thing: "deporte", plural: "deportes", labels: ["Fútbol", "Nado", "Básquet", "Bici"] },
+  { thing: "color", plural: "colores", labels: ["Rojo", "Azul", "Verde", "Rosa"] },
+] as const;
+
+function barValues(rand: Rng): number[] {
+  return shuffle([2, 3, 4, 5, 6, 7, 8, 9, 10, 12], rand).slice(0, 4);
+}
+
+function barsFigure(labels: readonly string[], values: number[]): Figure {
+  return { kind: "bars", values, labels: [...labels] };
+}
+
+function barsHighest(rand: Rng): Question {
+  const scene = pick(BAR_SCENES, rand);
+  const values = barValues(rand);
+  const max = Math.max(...values);
+  const winner = scene.labels[values.indexOf(max)];
+  return pack(rand, {
+    topic: "barras",
+    prompt: `En esta gráfica de barras, ¿qué ${scene.thing} eligieron más alumnos?`,
+    explain: `Comparas las alturas. La barra más alta es ${winner}, con ${max} alumnos. En la base va la categoría y en la altura, la cantidad.`,
+    figure: barsFigure(scene.labels, values),
+    srFigure: scene.labels.map((label, index) => `${label}: ${values[index]}`).join(". "),
+    items: scene.labels.map((label) => ({ label, correct: label === winner })),
+  });
+}
+
+function barsRead(rand: Rng): Question {
+  const scene = pick(BAR_SCENES, rand);
+  const values = barValues(rand);
+  const index = Math.floor(rand() * values.length);
+  const label = scene.labels[index];
+  const value = values[index];
+  return pack(rand, {
+    topic: "barras",
+    prompt: `¿Cuántos alumnos eligieron ${label}?`,
+    explain: `Busca la barra de ${label} y lee su altura: ${value}. No sumes todas las barras, solo esa.`,
+    figure: barsFigure(scene.labels, values),
+    srFigure: scene.labels.map((name, i) => `${name}: ${values[i]}`).join(". "),
+    items: [
+      { label: String(value), correct: true },
+      ...numericWrongs(value, values.filter((item) => item !== value).concat([sum(values), maxOf(values)])).map((text) => ({ label: text })),
+    ],
+  });
+}
+
+function maxOf(values: number[]): number {
+  return Math.max(...values);
+}
+
+function barsDiff(rand: Rng): Question {
+  const scene = pick(BAR_SCENES, rand);
+  const values = barValues(rand);
+  const order = values.map((value, index) => ({ value, index })).sort((a, b) => b.value - a.value);
+  const hi = order[0];
+  const lo = order[order.length - 1];
+  const diff = hi.value - lo.value;
+  const a = scene.labels[hi.index];
+  const b = scene.labels[lo.index];
+  return pack(rand, {
+    topic: "barras",
+    prompt: `¿Cuántos alumnos más eligieron ${a} que ${b}?`,
+    explain: `${a} tiene ${hi.value} y ${b} tiene ${lo.value}. La diferencia es ${hi.value} − ${lo.value} = ${diff}.`,
+    figure: barsFigure(scene.labels, values),
+    srFigure: scene.labels.map((name, i) => `${name}: ${values[i]}`).join(". "),
+    items: [
+      { label: String(diff), correct: true },
+      ...numericWrongs(diff, [hi.value, lo.value, hi.value + lo.value, sum(values)]).map((text) => ({ label: text })),
+    ],
+  });
+}
+
+function barsWhen(rand: Rng): Question {
+  return pack(rand, {
+    topic: "barras",
+    prompt: "Quieres comparar cuántos alumnos prefieren cada mascota. ¿Qué gráfica conviene?",
+    explain: "La gráfica de barras sirve para comparar categorías lado a lado. La más alta es la preferida. La circular reparte un total y el polígono une frecuencias con una línea.",
+    items: [
+      { label: "Gráfica de barras", correct: true },
+      { label: "Solo el rango, sin dibujar" },
+      { label: "La mediana, que es un número" },
+      { label: "Una suma, sin categorías" },
+    ],
+  });
+}
+
+const PIES = [
+  { whole: "alumnos", labels: ["Fútbol", "Básquet", "Nado"], values: [10, 6, 4] },
+  { whole: "alumnos", labels: ["Rojo", "Azul", "Verde"], values: [12, 5, 3] },
+  { whole: "votos", labels: ["Pizza", "Tacos", "Fruta"], values: [9, 6, 3] },
+  { whole: "alumnos", labels: ["Cine", "Parque", "Casa"], values: [5, 11, 4] },
+  { whole: "alumnos", labels: ["Bus", "Bici", "A pie"], values: [14, 6, 4] },
+  { whole: "votos", labels: ["Rock", "Pop", "Jazz"], values: [8, 5, 3] },
+] as const;
+
+function pieFigure(labels: readonly string[], values: readonly number[]): Figure {
+  return { kind: "pie", slices: labels.map((label, index) => ({ label, value: values[index] })) };
+}
+
+function pieLargest(rand: Rng): Question {
+  const scene = pick(PIES, rand);
+  const values: number[] = [...scene.values];
+  const max = Math.max(...values);
+  const winner = scene.labels[values.indexOf(max)];
+  return pack(rand, {
+    topic: "circular",
+    prompt: "En esta gráfica circular, ¿qué parte es la mayor?",
+    explain: `La rebanada más grande es ${winner}, con ${max}. En una circular, el círculo completo junta todas las partes.`,
+    figure: pieFigure(scene.labels, scene.values),
+    srFigure: scene.labels.map((label, index) => `${label}: ${scene.values[index]}`).join(". "),
+    items: [
+      ...scene.labels.map((label) => ({ label, correct: label === winner })),
+      { label: "Las tres iguales" },
+    ],
+  });
+}
+
+function pieTotal(rand: Rng): Question {
+  const scene = pick(PIES, rand);
+  const total = sum([...scene.values]);
+  return pack(rand, {
+    topic: "circular",
+    prompt: `Si juntas todas las rebanadas, ¿cuántos ${scene.whole} representa el círculo?`,
+    explain: `El círculo es el total. ${scene.values.join(" + ")} = ${total}. No te quedes solo con la rebanada más grande.`,
+    figure: pieFigure(scene.labels, scene.values),
+    srFigure: scene.labels.map((label, index) => `${label}: ${scene.values[index]}`).join(". "),
+    items: [
+      { label: String(total), correct: true },
+      ...numericWrongs(total, [maxOf([...scene.values]), scene.values[0] + scene.values[1], scene.values.length]).map((text) => ({
+        label: text,
+      })),
+    ],
+  });
+}
+
+function pieRead(rand: Rng): Question {
+  const scene = pick(PIES, rand);
+  const index = Math.floor(rand() * scene.labels.length);
+  const label = scene.labels[index];
+  const value = scene.values[index];
+  return pack(rand, {
+    topic: "circular",
+    prompt: `¿Cuántos corresponden a ${label}?`,
+    explain: `En la leyenda, ${label} vale ${value}. Esa es su parte del círculo, no el total.`,
+    figure: pieFigure(scene.labels, scene.values),
+    srFigure: scene.labels.map((name, i) => `${name}: ${scene.values[i]}`).join(". "),
+    items: [
+      { label: String(value), correct: true },
+      ...numericWrongs(value, [...scene.values, sum([...scene.values])]).map((text) => ({ label: text })),
+    ],
+  });
+}
+
+function pieWhen(rand: Rng): Question {
+  return pack(rand, {
+    topic: "circular",
+    prompt: "Quieres mostrar cómo se reparte un total completo en partes. ¿Qué gráfica conviene?",
+    explain: "La gráfica circular, también llamada de pastel, sirve cuando las partes juntas forman un entero. Las barras comparan categorías y el polígono enseña cómo sube o baja la frecuencia.",
+    items: [
+      { label: "Gráfica circular", correct: true },
+      { label: "Solo el rango" },
+      { label: "La moda, sin dibujo" },
+      { label: "Una resta de dos datos" },
+    ],
+  });
+}
+
+const POLYS = [
+  {
+    axis: "Hermanos",
+    labels: ["0", "1", "2", "3", "4"],
+    values: [2, 5, 8, 4, 1],
+    peak: "¿Qué número de hermanos tiene la mayor frecuencia?",
+  },
+  {
+    axis: "Libros",
+    labels: ["1", "2", "3", "4", "5"],
+    values: [3, 4, 9, 6, 2],
+    peak: "¿Qué cantidad de libros tiene la mayor frecuencia?",
+  },
+  {
+    axis: "Goles",
+    labels: ["0", "1", "2", "3"],
+    values: [4, 7, 5, 2],
+    peak: "¿Qué número de goles tiene la mayor frecuencia?",
+  },
+  {
+    axis: "Nota",
+    labels: ["6", "7", "8", "9", "10"],
+    values: [1, 4, 6, 9, 3],
+    peak: "¿Qué nota tiene la mayor frecuencia?",
+  },
+] as const;
+
+function polyFigure(labels: readonly string[], values: readonly number[]): Figure {
+  return { kind: "polygon", values: [...values], labels: [...labels] };
+}
+
+function polyPeak(rand: Rng): Question {
+  const scene = pick(POLYS, rand);
+  const values: number[] = [...scene.values];
+  const max = Math.max(...values);
+  const winner = scene.labels[values.indexOf(max)];
+  const wrongLabels = scene.labels.filter((label) => label !== winner).slice(0, 3);
+  return pack(rand, {
+    topic: "poligono",
+    prompt: scene.peak,
+    explain: `En el polígono, el punto más alto es la mayor frecuencia. Está en ${winner}, con frecuencia ${max}.`,
+    figure: polyFigure(scene.labels, scene.values),
+    srFigure: scene.labels.map((label, index) => `${scene.axis} ${label}: frecuencia ${scene.values[index]}`).join(". "),
+    items: [{ label: winner, correct: true }, ...wrongLabels.map((label) => ({ label }))],
+  });
+}
+
+function polyRead(rand: Rng): Question {
+  const scene = pick(POLYS, rand);
+  const index = Math.floor(rand() * scene.labels.length);
+  const label = scene.labels[index];
+  const value = scene.values[index];
+  return pack(rand, {
+    topic: "poligono",
+    prompt: `¿Cuál es la frecuencia del dato ${label}?`,
+    explain: `El número junto al punto de ${label} es su frecuencia: ${value}. No es la etiqueta del eje, es la altura del punto.`,
+    figure: polyFigure(scene.labels, scene.values),
+    srFigure: scene.labels.map((name, i) => `${name}: ${scene.values[i]}`).join(". "),
+    items: [
+      { label: String(value), correct: true },
+      ...numericWrongs(value, [...scene.values, Number(label) || 0, sum([...scene.values])]).map((text) => ({ label: text })),
+    ],
+  });
+}
+
+function polyDiff(rand: Rng): Question {
+  const scene = pick(POLYS, rand);
+  const order = scene.values.map((value, index) => ({ value, index })).sort((a, b) => b.value - a.value);
+  const hi = order[0];
+  const lo = order[order.length - 1];
+  const diff = hi.value - lo.value;
+  return pack(rand, {
+    topic: "poligono",
+    prompt: `¿En cuánto supera la frecuencia de ${scene.labels[hi.index]} a la de ${scene.labels[lo.index]}?`,
+    explain: `Frecuencia de ${scene.labels[hi.index]}: ${hi.value}. Frecuencia de ${scene.labels[lo.index]}: ${lo.value}. Resta: ${hi.value} − ${lo.value} = ${diff}.`,
+    figure: polyFigure(scene.labels, scene.values),
+    srFigure: scene.labels.map((name, i) => `${name}: ${scene.values[i]}`).join(". "),
+    items: [
+      { label: String(diff), correct: true },
+      ...numericWrongs(diff, [hi.value, lo.value, hi.value + lo.value]).map((text) => ({ label: text })),
+    ],
+  });
+}
+
+const SHAPE_ITEMS = [
+  {
+    label: "Puntos unidos por una línea",
+    figure: { kind: "polygon", values: [2, 6, 9, 4, 3], labels: ["0", "1", "2", "3", "4"] } as Figure,
+    id: "polygon",
+  },
+  {
+    label: "Barras separadas de distinta altura",
+    figure: { kind: "bars", values: [4, 8, 5, 2], labels: ["A", "B", "C", "D"] } as Figure,
+    id: "bars",
+  },
+  {
+    label: "Un círculo partido en rebanadas",
+    figure: {
+      kind: "pie",
+      slices: [
+        { label: "A", value: 5 },
+        { label: "B", value: 3 },
+        { label: "C", value: 2 },
+      ],
+    } as Figure,
+    id: "pie",
+  },
+  {
+    label: "Números sueltos, sin ejes",
+    figure: { kind: "chips", values: [4, 7, 2, 9] } as Figure,
+    id: "chips",
+  },
+];
+
+function whichPolygon(rand: Rng): Question {
+  return pack(rand, {
+    topic: "poligono",
+    prompt: "¿Cuál figura es un polígono de frecuencias?",
+    explain: "El polígono de frecuencias marca cada frecuencia con un punto y los une con segmentos. No son barras sueltas ni un círculo partido.",
+    items: SHAPE_ITEMS.map((item) => ({
+      label: item.label,
+      figure: item.figure,
+      correct: item.id === "polygon",
+    })),
+  });
+}
+
+function whichBars(rand: Rng): Question {
+  return pack(rand, {
+    topic: "barras",
+    prompt: "¿Cuál figura es una gráfica de barras?",
+    explain: "La gráfica de barras usa rectángulos separados. La altura de cada uno es la cantidad de esa categoría.",
+    items: SHAPE_ITEMS.map((item) => ({
+      label: item.label,
+      figure: item.figure,
+      correct: item.id === "bars",
+    })),
+  });
+}
+
+function polyWhat(rand: Rng): Question {
+  return pack(rand, {
+    topic: "poligono",
+    prompt: "¿Qué es un polígono de frecuencias?",
+    explain: "Es la línea que une los puntos de las frecuencias, en orden. Así se ve si los datos suben o bajan. No es una resta ni un círculo.",
+    figure: { kind: "polygon", values: [1, 4, 7, 5, 2], labels: ["6", "7", "8", "9", "10"] },
+    srFigure: "Polígono con frecuencias 1, 4, 7, 5 y 2.",
+    items: [
+      { label: "Una línea que une las frecuencias de cada dato", correct: true },
+      { label: "El dato mayor menos el dato menor" },
+      { label: "Un círculo partido en porcentajes" },
+      { label: "Sumar los datos y dividir" },
+    ],
+  });
+}
+
+function rangeCalc(rand: Rng): Question {
+  const values = sampleDistinct(rand, pick([4, 5], rand));
+  const hi = Math.max(...values);
+  const lo = Math.min(...values);
+  const range = hi - lo;
+  return pack(rand, {
+    topic: "rango",
+    prompt: "¿Cuál es el rango de estos datos?",
+    explain: `El rango es el mayor menos el menor: ${hi} − ${lo} = ${range}. No es el mayor solo, ni la cantidad de datos.`,
+    figure: { kind: "chips", values },
+    srFigure: `Datos: ${values.join(", ")}.`,
+    items: [
+      { label: String(range), correct: true },
+      ...numericWrongs(range, [hi, lo, hi + lo, values.length, sortedCopy(values)[1]]).map((text) => ({ label: text })),
+    ],
+  });
+}
+
+function rangeKnown(rand: Rng): Question {
+  const lo = pick([0, 1, 2, 3, 4], rand);
+  const range = pick([5, 6, 7, 8, 9, 12], rand);
+  const hi = lo + range;
+  return pack(rand, {
+    topic: "rango",
+    prompt: `El dato mayor es ${hi} y el menor es ${lo}. ¿Cuál es el rango?`,
+    explain: `Rango = mayor − menor = ${hi} − ${lo} = ${range}.`,
+    items: [
+      { label: String(range), correct: true },
+      ...numericWrongs(range, [hi, lo, hi + lo, hi - lo + 1]).map((text) => ({ label: text })),
+    ],
+  });
+}
+
+function rangeCompare(rand: Rng): Question {
+  const a = sampleDistinct(rand, 4);
+  let b = sampleDistinct(rand, 4);
+  for (let attempt = 0; attempt < 6 && rangeOf(a) === rangeOf(b); attempt++) b = sampleDistinct(rand, 4);
+  const ra = rangeOf(a);
+  const rb = rangeOf(b);
+  const correct = ra === rb ? "Empate: el mismo rango" : ra > rb ? "El grupo A" : "El grupo B";
+  return pack(rand, {
+    topic: "rango",
+    prompt: `Grupo A: ${a.join(", ")}. Grupo B: ${b.join(", ")}. ¿Qué grupo tiene mayor rango?`,
+    explain: `A: ${Math.max(...a)} − ${Math.min(...a)} = ${ra}. B: ${Math.max(...b)} − ${Math.min(...b)} = ${rb}. ${
+      ra === rb ? "Quedan iguales." : ra > rb ? "A es mayor." : "B es mayor."
+    }`,
+    items: ["El grupo A", "El grupo B", "Empate: el mismo rango", "No se puede saber"].map((label) => ({
+      label,
+      correct: label === correct,
+    })),
+  });
+}
+
+function rangeWhat(rand: Rng): Question {
+  return pack(rand, {
+    topic: "rango",
+    prompt: "¿Cómo se calcula el rango?",
+    explain: "Se resta el dato menor al dato mayor. Si los datos son 2, 9 y 5, el rango es 9 − 2 = 7. No hace falta ordenarlos todos, solo ubicar el mayor y el menor.",
+    items: [
+      { label: "Dato mayor menos dato menor", correct: true },
+      { label: "Sumar todo y dividir entre cuántos hay" },
+      { label: "Elegir el dato que más se repite" },
+      { label: "Tomar el dato que queda en el centro" },
+    ],
+  });
+}
+
+const MEAN_SETS = [
+  [2, 4, 6, 8],
+  [1, 3, 5, 7],
+  [5, 5, 5, 5],
+  [2, 2, 5, 7],
+  [1, 2, 3, 6],
+  [4, 6, 8, 10],
+  [3, 3, 6, 8],
+  [2, 3, 4, 5, 6],
+  [1, 1, 4, 6, 8],
+  [10, 12, 14],
+  [6, 8, 10],
+  [1, 5, 9],
+  [4, 4, 4, 8],
+  [3, 6, 6, 9],
+  [1, 2, 3, 4, 10],
+  [4, 5, 6],
+  [8, 8, 11, 13],
+  [2, 4, 4, 6, 9],
+];
+
+function meanCalc(rand: Rng): Question {
+  const values = pick(MEAN_SETS, rand);
+  const total = sum(values);
+  const mean = total / values.length;
+  return pack(rand, {
+    topic: "media",
+    prompt: "¿Cuál es la media (el promedio) de estos datos?",
+    explain: `Suma: ${values.join(" + ")} = ${total}. Hay ${values.length} datos. Media = ${total} ÷ ${values.length} = ${mean}.`,
+    figure: { kind: "chips", values },
+    srFigure: `Datos: ${values.join(", ")}.`,
+    items: [
+      { label: String(mean), correct: true },
+      ...numericWrongs(mean, [total, maxOf(values), Math.min(...values), values.length, mean + values.length]).map((text) => ({
+        label: text,
+      })),
+    ],
+  });
+}
+
+const MEAN_SUMS = [
+  { sum: 20, n: 4, mean: 5 },
+  { sum: 18, n: 6, mean: 3 },
+  { sum: 24, n: 4, mean: 6 },
+  { sum: 15, n: 5, mean: 3 },
+  { sum: 30, n: 5, mean: 6 },
+  { sum: 12, n: 3, mean: 4 },
+  { sum: 36, n: 6, mean: 6 },
+  { sum: 21, n: 7, mean: 3 },
+  { sum: 40, n: 8, mean: 5 },
+  { sum: 27, n: 3, mean: 9 },
+];
+
+function meanFromSum(rand: Rng): Question {
+  const row = pick(MEAN_SUMS, rand);
+  return pack(rand, {
+    topic: "media",
+    prompt: `La suma de los datos es ${row.sum} y hay ${row.n} datos. ¿Cuál es la media?`,
+    explain: `Media = suma ÷ cantidad = ${row.sum} ÷ ${row.n} = ${row.mean}.`,
+    items: [
+      { label: String(row.mean), correct: true },
+      ...numericWrongs(row.mean, [row.sum, row.n, row.sum - row.n, row.mean + row.n]).map((text) => ({ label: text })),
+    ],
+  });
+}
+
+function meanWhat(rand: Rng): Question {
+  return pack(rand, {
+    topic: "media",
+    prompt: "¿Qué es la media aritmética?",
+    explain: "La media, o promedio, se obtiene sumando todos los datos y dividiendo entre cuántos datos hay. No es el que más se repite ni el del centro.",
+    items: [
+      { label: "La suma de los datos dividida entre cuántos son", correct: true },
+      { label: "El dato que más se repite" },
+      { label: "El dato del centro, ya ordenados" },
+      { label: "El dato mayor menos el menor" },
+    ],
+  });
+}
+
+const MODE_SETS = [
+  [3, 5, 5, 5, 8],
+  [2, 2, 4, 7, 9],
+  [6, 1, 6, 4, 3],
+  [8, 8, 8, 2, 5],
+  [4, 9, 4, 1, 7],
+  [1, 3, 3, 3, 6],
+  [7, 2, 7, 5, 9],
+  [10, 10, 4, 6],
+  [4, 4, 2, 9, 1],
+  [6, 8, 6, 6, 3],
+];
+
+function modeCalc(rand: Rng): Question {
+  const values = pick(MODE_SETS, rand);
+  const mode = modeOf(values) ?? values[0];
+  const times = values.filter((value) => value === mode).length;
+  return pack(rand, {
+    topic: "moda",
+    prompt: "¿Cuál es la moda de estos datos?",
+    explain: `La moda es el dato que más se repite. El ${mode} aparece ${times} veces, más que los demás.`,
+    figure: { kind: "chips", values },
+    srFigure: `Datos: ${values.join(", ")}.`,
+    items: [
+      { label: String(mode), correct: true },
+      ...numericWrongs(
+        mode,
+        values.filter((value) => value !== mode).concat([sum(values), medianOf(values)]),
+      ).map((text) => ({ label: text })),
+    ],
+  });
+}
+
+const NO_MODE = [
+  [1, 2, 3, 4, 5],
+  [2, 4, 6, 8],
+  [3, 5, 7, 9, 11],
+  [1, 4, 6, 8, 10],
+  [2, 5, 7, 9],
+];
+
+function modeNone(rand: Rng): Question {
+  const values = pick(NO_MODE, rand);
+  const decoys = values.slice(0, 3).map((value) => `La moda es ${value}`);
+  return pack(rand, {
+    topic: "moda",
+    prompt: "¿Cuál es la moda de estos datos?",
+    explain: "Ningún dato se repite: cada uno aparece una sola vez. En ese caso se dice que no hay moda.",
+    figure: { kind: "chips", values },
+    srFigure: `Datos sin repeticiones: ${values.join(", ")}.`,
+    items: [
+      { label: "No hay moda", correct: true },
+      ...decoys.map((label) => ({ label })),
+    ],
+  });
+}
+
+const MODE_TABLES: { headers: [string, string]; rows: [string, string][]; mode: string; freq: string }[] = [
+  {
+    headers: ["Color", "Frecuencia"],
+    rows: [
+      ["Rojo", "2"],
+      ["Azul", "6"],
+      ["Verde", "3"],
+      ["Rosa", "1"],
+    ],
+    mode: "Azul",
+    freq: "6",
+  },
+  {
+    headers: ["Mascota", "Frecuencia"],
+    rows: [
+      ["Perro", "4"],
+      ["Gato", "9"],
+      ["Ave", "5"],
+      ["Pez", "2"],
+    ],
+    mode: "Gato",
+    freq: "9",
+  },
+  {
+    headers: ["Nota", "Frecuencia"],
+    rows: [
+      ["7", "3"],
+      ["8", "5"],
+      ["9", "8"],
+      ["10", "4"],
+    ],
+    mode: "9",
+    freq: "8",
+  },
+  {
+    headers: ["Deporte", "Frecuencia"],
+    rows: [
+      ["Fútbol", "7"],
+      ["Nado", "3"],
+      ["Básquet", "5"],
+      ["Bici", "1"],
+    ],
+    mode: "Fútbol",
+    freq: "7",
+  },
+];
+
+function modeFromTable(rand: Rng): Question {
+  const table = pick(MODE_TABLES, rand);
+  return pack(rand, {
+    topic: "moda",
+    prompt: "En esta tabla de frecuencias, ¿cuál es la moda?",
+    explain: `La moda es el dato con mayor frecuencia. ${table.mode} tiene frecuencia ${table.freq}, la más alta de la tabla.`,
+    figure: { kind: "table", headers: table.headers, rows: table.rows },
+    srFigure: table.rows.map((row) => `${row[0]}: ${row[1]}`).join(". "),
+    items: table.rows.map((row) => ({ label: row[0], correct: row[0] === table.mode })),
+  });
+}
+
+function modeWhat(rand: Rng): Question {
+  return pack(rand, {
+    topic: "moda",
+    prompt: "¿Qué es la moda?",
+    explain: "La moda es el dato que más veces aparece. En una gráfica de barras o en un polígono, es el de la barra o el punto más alto. Si nadie se repite, no hay moda.",
+    items: [
+      { label: "El dato que más se repite", correct: true },
+      { label: "La suma dividida entre la cantidad" },
+      { label: "El dato del centro al ordenar" },
+      { label: "El mayor menos el menor" },
+    ],
+  });
+}
+
+function modeFromBars(rand: Rng): Question {
+  const scene = pick(BAR_SCENES, rand);
+  const values = barValues(rand);
+  const max = Math.max(...values);
+  const winner = scene.labels[values.indexOf(max)];
+  return pack(rand, {
+    topic: "moda",
+    prompt: "Mirando la gráfica, ¿cuál es la moda?",
+    explain: `La moda es la categoría que más se repite. Aquí es la barra más alta: ${winner}, con ${max}.`,
+    figure: barsFigure(scene.labels, values),
+    srFigure: scene.labels.map((label, index) => `${label}: ${values[index]}`).join(". "),
+    items: scene.labels.map((label) => ({ label, correct: label === winner })),
+  });
+}
+
+const MEDIAN_ODD = [
+  [7, 1, 4, 9, 3],
+  [8, 2, 5],
+  [10, 4, 6, 2, 8],
+  [9, 1, 5, 3, 7],
+  [12, 3, 6, 15, 9],
+  [4, 4, 4, 8, 10],
+  [2, 9, 2, 5, 2],
+  [1, 8, 3, 6, 5],
+  [14, 2, 8, 6, 20],
+  [3, 11, 7, 1, 5],
+];
+
+function medianOdd(rand: Rng): Question {
+  const values = pick(MEDIAN_ODD, rand);
+  const ordered = sortedCopy(values);
+  const median = medianOf(values);
+  return pack(rand, {
+    topic: "mediana",
+    prompt: "¿Cuál es la mediana? Acuérdate de ordenar primero.",
+    explain: `Ordenados de menor a mayor: ${ordered.join(", ")}. Como hay ${values.length} datos, el del centro es ${median}.`,
+    figure: { kind: "chips", values },
+    srFigure: `Datos, todavía sin ordenar: ${values.join(", ")}.`,
+    items: [
+      { label: String(median), correct: true },
+      ...numericWrongs(median, [...ordered, sum(values) / values.length, values[0]]).map((text) => ({ label: text })),
+    ],
+  });
+}
+
+const MEDIAN_EVEN = [
+  [1, 2, 4, 5],
+  [2, 4, 6, 10],
+  [1, 3, 5, 7],
+  [3, 5, 7, 9],
+  [2, 6, 8, 12],
+  [4, 4, 8, 10],
+  [1, 5, 5, 9],
+  [2, 3, 7, 8],
+  [5, 1, 7, 9],
+  [8, 2, 4, 6],
+];
+
+function medianEven(rand: Rng): Question {
+  const values = pick(MEDIAN_EVEN, rand);
+  const ordered = sortedCopy(values);
+  const left = ordered[ordered.length / 2 - 1];
+  const right = ordered[ordered.length / 2];
+  const median = (left + right) / 2;
+  return pack(rand, {
+    topic: "mediana",
+    prompt: "Hay un número par de datos. ¿Cuál es la mediana?",
+    explain: `Ordenados: ${ordered.join(", ")}. En el centro quedan ${left} y ${right}. Mediana = (${left} + ${right}) ÷ 2 = ${median}.`,
+    figure: { kind: "chips", values },
+    srFigure: `Datos: ${values.join(", ")}.`,
+    items: [
+      { label: String(median), correct: true },
+      ...numericWrongs(median, [left, right, ordered[0], ordered[ordered.length - 1], left + right]).map((text) => ({
+        label: text,
+      })),
+    ],
+  });
+}
+
+function medianWhat(rand: Rng): Question {
+  return pack(rand, {
+    topic: "mediana",
+    prompt: "¿Qué hay que hacer para hallar la mediana?",
+    explain: "Primero se ordenan los datos de menor a mayor. Si la cantidad es impar, la mediana es el del centro. Si es par, se promedian los dos que quedan en el centro.",
+    items: [
+      { label: "Ordenar y tomar el dato del centro", correct: true },
+      { label: "Sumar y dividir entre la cantidad" },
+      { label: "Restar el menor al mayor" },
+      { label: "Elegir el que más se repite" },
+    ],
+  });
+}
+
+function medianSpot(rand: Rng): Question {
+  const ordered = [2, 5, 6, 9, 11];
+  return pack(rand, {
+    topic: "mediana",
+    prompt: `Los datos ordenados quedan ${ordered.join(", ")}. ¿Cuál número es la mediana?`,
+    explain: "Son 5 datos. El del centro, el tercero, es 6. El 2 es el menor y el 11 es el mayor: ninguno de esos es la mediana.",
+    figure: { kind: "chips", values: ordered },
+    srFigure: `Datos ordenados: ${ordered.join(", ")}.`,
+    items: [
+      { label: "6", correct: true },
+      { label: "2" },
+      { label: "11" },
+      { label: "5" },
+    ],
+  });
+}
+
+const BUILDERS: Record<TopicId, Builder[]> = {
+  barras: [barsHighest, barsRead, barsDiff, barsWhen, whichBars],
+  circular: [pieLargest, pieTotal, pieRead, pieWhen],
+  poligono: [polyPeak, polyRead, polyDiff, whichPolygon, polyWhat],
+  rango: [rangeCalc, rangeKnown, rangeCompare, rangeWhat],
+  media: [meanCalc, meanFromSum, meanWhat],
+  moda: [modeCalc, modeNone, modeFromTable, modeWhat, modeFromBars],
+  mediana: [medianOdd, medianEven, medianWhat, medianSpot],
+};
+
+function takeQuestions(builders: Builder[], count: number, rand: Rng): Question[] {
+  const made: Question[] = [];
+  const seen = new Set<string>();
+  let guard = 0;
+  let cursor: Builder[] = [];
+  while (made.length < count && guard < 40) {
+    guard += 1;
+    if (cursor.length === 0) cursor = shuffle(builders, rand);
+    const build = cursor.pop();
+    if (!build) break;
+    const question = safe(build, rand);
+    const key = `${question.prompt}::${question.options.map((option) => option.label).join("~")}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    made.push(question);
+  }
+  return made;
+}
+
+export function buildTopicQuiz(topic: TopicId, rand: Rng = Math.random, count = TOPIC_LENGTH): Question[] {
+  return takeQuestions(BUILDERS[topic], count, rand);
+}
+
+export function buildQuiz(rand: Rng = Math.random): Question[] {
+  const extra = pick(TOPIC_IDS, rand);
+  const ids = shuffle([...TOPIC_IDS, extra], rand);
+  const seen = new Set<string>();
+  return ids.map((id) => {
+    let question = safe(pick(BUILDERS[id], rand), rand);
+    for (let attempt = 0; attempt < 8 && seen.has(question.prompt); attempt++) {
+      question = safe(pick(BUILDERS[id], rand), rand);
+    }
+    seen.add(question.prompt);
+    return question;
+  });
+}
+
+export function scoreQuiz(questions: Question[], answers: Record<string, string>): number {
+  return questions.filter((question) => answers[question.id] === question.correctId).length;
+}
+
+// ========== src/components/quiz-app.tsx ==========
+
+import { useEffect, useState } from "react";
+import {
+  AlignCenter,
+  ArrowLeftRight,
+  ArrowRight,
+  BarChart3,
+  LineChart,
+  PieChart,
+  RotateCcw,
+  Sigma,
+  Star,
+  Trophy,
+} from "lucide-react";
+import { GraphFigure } from "@/components/graph-figure";
+import {
+  QUIZ_LENGTH,
+  TOPIC_IDS,
+  TOPIC_LENGTH,
+  TONES,
+  TOPICS,
+  buildQuiz,
+  buildTopicQuiz,
+  memeFor,
+  scoreQuiz,
+  topicById,
+  type Question,
+  type TopicId,
+} from "@/lib/quiz";
+
+const STORAGE_KEY = "grafiquiz-v2";
+
+const ICONS = {
+  barras: BarChart3,
+  circular: PieChart,
+  poligono: LineChart,
+  rango: ArrowLeftRight,
+  media: Sigma,
+  moda: Star,
+  mediana: AlignCenter,
+} as const;
+
+type Save = { name: string; best: number };
+
+function loadSave(): Save | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<Save>;
+    if (typeof parsed.best !== "number") return null;
+    return { name: typeof parsed.name === "string" ? parsed.name : "", best: parsed.best };
+  } catch {
+    return null;
+  }
+}
+
+function storeSave(save: Save) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(save));
+}
+
+export function QuizApp() {
+  const [name, setName] = useState("");
+  const [best, setBest] = useState<number | null>(null);
+  const [ready, setReady] = useState(false);
+  const [phase, setPhase] = useState<"home" | "play" | "done">("home");
+  const [mix, setMix] = useState(true);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [index, setIndex] = useState(0);
+  const [picked, setPicked] = useState<string | null>(null);
+  const [confirmed, setConfirmed] = useState(false);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [record, setRecord] = useState(false);
+
+  useEffect(() => {
+    const saved = loadSave();
+    if (saved) {
+      setBest(saved.best);
+      setName(saved.name);
+    }
+    setReady(true);
+  }, []);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [phase, index]);
+
+  function start(topic?: TopicId) {
+    const clean = name.trim().slice(0, 24);
+    setName(clean);
+    const nextMix = !topic;
+    setMix(nextMix);
+    setQuestions(topic ? buildTopicQuiz(topic) : buildQuiz());
+    setIndex(0);
+    setPicked(null);
+    setConfirmed(false);
+    setAnswers({});
+    setRecord(false);
+    setPhase("play");
+    const previous = loadSave();
+    if (previous) storeSave({ name: clean, best: previous.best });
+  }
+
+  function confirm() {
+    const question = questions[index];
+    if (!question || !picked) return;
+    setAnswers((current) => ({ ...current, [question.id]: picked }));
+    setConfirmed(true);
+  }
+
+  function finish(nextAnswers: Record<string, string>) {
+    const score = scoreQuiz(questions, nextAnswers);
+    if (mix) {
+      const improved = best !== null && score > best;
+      const nextBest = Math.max(best ?? 0, score);
+      setBest(nextBest);
+      setRecord(improved);
+      storeSave({ name: name.trim(), best: nextBest });
+    }
+    setPhase("done");
+  }
+
+  function next() {
+    if (index + 1 >= questions.length) {
+      finish(answers);
+      return;
+    }
+    setIndex((current) => current + 1);
+    setPicked(null);
+    setConfirmed(false);
+  }
+
+  const score = scoreQuiz(questions, answers);
+  const meme = memeFor(score, questions.length);
+  const missed = questions.filter((question) => answers[question.id] !== question.correctId);
+
+  return (
+    <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col px-4 py-8 sm:px-6 sm:py-12">
+      <header className="mb-6 flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={() => setPhase("home")}
+          className="flex items-center gap-2 rounded-full bg-sheet px-3 py-2 text-left text-ink ring-1 ring-line"
+        >
+          <span className="flex size-9 items-center justify-center rounded-full bg-accent text-accent-ink">
+            <LineChart size={18} aria-hidden="true" />
+          </span>
+          <span>
+            <span className="block font-display text-lg leading-none">GrafiQuiz</span>
+            <span className="text-xs text-muted">1º de secundaria</span>
+          </span>
+        </button>
+        {ready && best !== null && best > 0 && (
+          <p className="rounded-full bg-sheet px-3 py-2 text-sm font-semibold text-ink tabular-nums ring-1 ring-line">
+            Mejor {best}/{QUIZ_LENGTH}
+          </p>
+        )}
+      </header>
+
+      {phase === "home" && (
+        <HomeScreen name={name} best={ready ? best : null} onName={setName} onStart={start} />
+      )}
+
+      {phase === "play" && questions[index] && (
+        <PlayScreen
+          question={questions[index]}
+          index={index}
+          total={questions.length}
+          picked={picked}
+          confirmed={confirmed}
+          onPick={setPicked}
+          onConfirm={confirm}
+          onNext={next}
+        />
+      )}
+
+      {phase === "done" && (
+        <ResultScreen
+          name={name.trim()}
+          score={score}
+          total={questions.length}
+          mix={mix}
+          meme={meme}
+          record={record}
+          missed={missed}
+          answers={answers}
+          onAgain={() => start(mix ? undefined : questions[0]?.topic)}
+          onHome={() => setPhase("home")}
+        />
+      )}
+    </main>
+  );
+}
+
+function HomeScreen({
+  name,
+  best,
+  onName,
+  onStart,
+}: {
+  name: string;
+  best: number | null;
+  onName: (value: string) => void;
+  onStart: (topic?: TopicId) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-6">
+      <section className="rounded-3xl bg-accent p-6 text-accent-ink shadow-sm sm:p-8">
+        <p className="text-sm font-semibold tracking-wide uppercase">Siete temas, siete colores</p>
+        <h1 className="mt-2 font-display text-4xl leading-tight sm:text-5xl">Gráficas y promedios</h1>
+        <p className="mt-3 max-w-prose">
+          Preguntas de 1º: barras, gráfica circular, polígono de frecuencias, rango, media, moda y
+          mediana. Cada intento trae datos nuevos.
+        </p>
+        <form
+          className="mt-6 flex flex-col gap-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onStart();
+          }}
+        >
+          <label className="text-sm font-semibold" htmlFor="student-name">
+            Tu nombre, si quieres
+          </label>
+          <input
+            id="student-name"
+            value={name}
+            maxLength={24}
+            autoComplete="nickname"
+            placeholder="Ejemplo: Ana"
+            onChange={(event) => onName(event.target.value)}
+            className="min-h-12 w-full rounded-2xl border-2 border-paper bg-paper px-4 text-ink placeholder:text-muted"
+          />
+          <button
+            type="submit"
+            className="mt-1 inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-paper px-6 font-semibold text-ink"
+          >
+            Cuestionario de los {TOPIC_IDS.length} temas
+            <ArrowRight size={18} aria-hidden="true" />
+          </button>
+          {best !== null && (
+            <p className="text-sm">
+              Tu mejor marca del cuestionario completo, en este aparato:{" "}
+              <span className="font-semibold tabular-nums">
+                {best}/{QUIZ_LENGTH}
+              </span>
+            </p>
+          )}
+        </form>
+      </section>
+
+      <section>
+        <h2 className="font-display text-2xl text-ink">Elige un tema</h2>
+        <p className="mt-1 text-sm text-muted">
+          {TOPIC_LENGTH} preguntas del color que pulses. Sirve para repasar uno solo.
+        </p>
+        <ul className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {TOPICS.map((topic) => {
+            const tone = TONES[topic.id];
+            const Icon = ICONS[topic.id];
+            return (
+              <li key={topic.id}>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onStart(topic.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      onStart(topic.id);
+                    }
+                  }}
+                  className={`flex h-full flex-col rounded-3xl p-4 text-left ${tone.band}`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-paper text-ink">
+                      <Icon size={18} aria-hidden="true" />
+                    </span>
+                    <span className="font-display text-2xl leading-tight">{topic.title}</span>
+                  </span>
+                  <span className="mt-3 block rounded-2xl bg-well p-1 text-ink">
+                    <GraphFigure figure={topic.figure} variant="mini" />
+                  </span>
+                  <span className="mt-3 text-sm">{topic.body}</span>
+                  <span className="mt-3 text-sm font-semibold">Practicar este tema</span>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    </div>
+  );
+}
+
+function PlayScreen({
+  question,
+  index,
+  total,
+  picked,
+  confirmed,
+  onPick,
+  onConfirm,
+  onNext,
+}: {
+  question: Question;
+  index: number;
+  total: number;
+  picked: string | null;
+  confirmed: boolean;
+  onPick: (id: string) => void;
+  onConfirm: () => void;
+  onNext: () => void;
+}) {
+  const tone = TONES[question.topic];
+  const topic = topicById(question.topic);
+  const visual = question.options.some((option) => option.figure);
+  const correct = picked === question.correctId;
+
+  return (
+    <section className={`rounded-3xl p-5 shadow-sm sm:p-7 ${tone.band}`}>
+      <div className="flex items-center justify-between gap-3 text-sm">
+        <p className="font-semibold tabular-nums">
+          Pregunta {index + 1} de {total}
+        </p>
+        <p className="rounded-full bg-paper px-3 py-1 font-semibold text-ink">{topic.title}</p>
+      </div>
+      <div className={`mt-3 h-2 overflow-hidden rounded-full ${tone.track}`} aria-hidden="true">
+        <div className={`h-full rounded-full ${tone.fill}`} style={{ width: `${(index / total) * 100}%` }} />
+      </div>
+
+      <h2 className="mt-5 font-display text-2xl leading-snug sm:text-3xl">{question.prompt}</h2>
+      {question.srFigure && <p className="sr-only">{question.srFigure}</p>}
+      {question.figure && (
+        <div className="mx-auto mt-4 max-w-md rounded-2xl bg-well p-2 text-ink">
+          <GraphFigure figure={question.figure} />
+        </div>
+      )}
+
+      <div className={visual ? "mt-5 grid grid-cols-2 gap-3" : "mt-5 flex flex-col gap-3"} role="group" aria-label="Opciones">
+        {question.options.map((option) => {
+          const isPicked = picked === option.id;
+          const showCorrect = confirmed && option.id === question.correctId;
+          const showWrong = confirmed && isPicked && option.id !== question.correctId;
+          return (
+            <button
+              key={option.id}
+              type="button"
+              disabled={confirmed}
+              aria-pressed={isPicked}
+              onClick={() => onPick(option.id)}
+              className={[
+                "min-h-12 rounded-2xl border-2 px-3 py-3 text-left text-ink",
+                visual ? "flex flex-col gap-2" : "",
+                showCorrect
+                  ? "border-good bg-good-soft"
+                  : showWrong
+                    ? "border-bad bg-bad-soft"
+                    : isPicked
+                      ? "border-accent bg-sheet"
+                      : "border-transparent bg-paper",
+                confirmed && !showCorrect && !showWrong ? "opacity-55" : "",
+              ].join(" ")}
+            >
+              {option.figure && (
+                <span className="block rounded-xl bg-well p-1">
+                  <GraphFigure figure={option.figure} variant="mini" />
+                </span>
+              )}
+              <span className={option.figure ? "text-sm font-medium" : "font-medium"}>{option.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {confirmed && (
+        <div className="mt-4 rounded-2xl bg-paper px-4 py-3 text-sm text-ink">
+          <p className={correct ? "font-semibold text-good" : "font-semibold text-bad"}>
+            {correct ? "Correcto" : "Casi"}
+          </p>
+          <p className="mt-1">{question.explain}</p>
+        </div>
+      )}
+
+      <div className="mt-5">
+        {!confirmed ? (
+          <button
+            type="button"
+            disabled={!picked}
+            onClick={onConfirm}
+            className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-paper px-6 font-semibold text-ink disabled:opacity-40"
+          >
+            Confirmar respuesta
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onNext}
+            className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-paper px-6 font-semibold text-ink"
+          >
+            {index + 1 === total ? "Ver mi puntaje" : "Siguiente"}
+            <ArrowRight size={18} aria-hidden="true" />
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function ResultScreen({
+  name,
+  score,
+  total,
+  mix,
+  meme,
+  record,
+  missed,
+  answers,
+  onAgain,
+  onHome,
+}: {
+  name: string;
+  score: number;
+  total: number;
+  mix: boolean;
+  meme: ReturnType<typeof memeFor>;
+  record: boolean;
+  missed: Question[];
+  answers: Record<string, string>;
+  onAgain: () => void;
+  onHome: () => void;
+}) {
+  const percent = total === 0 ? 0 : Math.round((score / total) * 100);
+  return (
+    <section className="flex flex-col gap-5">
+      <div className="rounded-3xl bg-sheet p-5 text-ink ring-1 ring-line sm:p-7">
+        <p className="text-sm font-semibold text-accent">Resultado</p>
+        <h2 className="mt-1 font-display text-3xl">
+          {name ? `${name}, ${meme.title.toLowerCase()}` : meme.title}
+        </h2>
+        <p className="mt-3 font-display text-6xl text-accent tabular-nums leading-none">
+          {score}
+          <span className="text-3xl text-muted">/{total}</span>
+        </p>
+        <p className="mt-2 text-muted tabular-nums">{percent}% de aciertos</p>
+        {record && score > 0 && (
+          <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-good-soft px-3 py-1 text-sm font-semibold text-good">
+            <Trophy size={16} aria-hidden="true" />
+            Nueva mejor marca
+          </p>
+        )}
+        <img
+          src={meme.image}
+          alt={meme.alt}
+          width={960}
+          height={960}
+          className="mt-5 aspect-square w-full rounded-3xl object-cover"
+        />
+        <p className="mt-4 text-lg">{meme.line}</p>
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+          <button
+            type="button"
+            onClick={onAgain}
+            className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full bg-accent px-5 font-semibold text-accent-ink"
+          >
+            <RotateCcw size={18} aria-hidden="true" />
+            {mix ? "Otro cuestionario" : "Repetir este tema"}
+          </button>
+          <button
+            type="button"
+            onClick={onHome}
+            className="inline-flex min-h-12 flex-1 items-center justify-center rounded-full bg-paper px-5 font-semibold text-ink ring-1 ring-line"
+          >
+            Elegir tema
+          </button>
+        </div>
+      </div>
+
+      <div className="rounded-3xl bg-sheet p-5 text-ink ring-1 ring-line sm:p-7">
+        <h3 className="font-display text-2xl">{missed.length === 0 ? "No fallaste ninguna" : "Para repasar"}</h3>
+        {missed.length === 0 ? (
+          <p className="mt-2 text-muted">Estas ideas quedaron claras. Si quieres, mezcla otro intento.</p>
+        ) : (
+          <ul className="mt-4 flex flex-col gap-4">
+            {missed.map((question) => {
+              const chosen = question.options.find((option) => option.id === answers[question.id]);
+              const right = question.options.find((option) => option.id === question.correctId);
+              const tone = TONES[question.topic];
+              return (
+                <li key={question.id} className="border-t border-line pt-4 first:border-t-0 first:pt-0">
+                  <p className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${tone.band}`}>
+                    {topicById(question.topic).title}
+                  </p>
+                  <p className="mt-2 font-medium">{question.prompt}</p>
+                  <p className="mt-2 text-sm text-bad">Elegiste: {chosen?.label ?? "sin respuesta"}</p>
+                  <p className="text-sm text-good">Correcta: {right?.label}</p>
+                  <p className="mt-1 text-sm text-muted">{question.explain}</p>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </section>
+  );
+}
+
+// ========== src/components/graph-figure.tsx ==========
+
+import type { Figure } from "@/lib/quiz";
+
+type Variant = "full" | "mini";
+
+const CHART = [
+  "var(--color-chart-1)",
+  "var(--color-chart-2)",
+  "var(--color-chart-3)",
+  "var(--color-chart-4)",
+  "var(--color-chart-5)",
+];
+
+const CHIP = [
+  "bg-barras text-barras-ink",
+  "bg-circular text-circular-ink",
+  "bg-poligono text-poligono-ink",
+  "bg-media text-media-ink",
+  "bg-moda text-moda-ink",
+  "bg-mediana text-mediana-ink",
+  "bg-rango text-rango-ink",
+];
+
+function niceTop(max: number): number {
+  if (max <= 4) return 4;
+  if (max <= 5) return 5;
+  if (max <= 8) return 8;
+  if (max <= 10) return 10;
+  if (max <= 12) return 12;
+  if (max <= 16) return 16;
+  return Math.ceil(max / 5) * 5;
+}
+
+function ticksFor(top: number): number[] {
+  const step = top <= 6 ? 1 : top <= 12 ? 2 : top / 4;
+  const ticks: number[] = [];
+  for (let value = 0; value <= top + 0.001; value += step) ticks.push(Math.round(value));
+  return [...new Set(ticks)];
+}
+
+function Categorical({
+  values,
+  labels,
+  variant,
+  mode,
+}: {
+  values: number[];
+  labels: string[];
+  variant: Variant;
+  mode: "bars" | "polygon";
+}) {
+  const full = variant === "full";
+  const w = full ? 320 : 168;
+  const h = full ? 228 : 124;
+  const left = full ? 34 : 16;
+  const right = 10;
+  const top = full ? 26 : 12;
+  const bottom = full ? 32 : 22;
+  const base = h - bottom;
+  const plotW = w - left - right;
+  const plotH = base - top;
+  const topValue = niceTop(Math.max(...values, 1));
+  const ticks = ticksFor(topValue);
+  const slot = plotW / values.length;
+  const yOf = (value: number) => base - (value / topValue) * plotH;
+
+  const points = values.map((value, index) => {
+    const x = left + index * slot + slot / 2;
+    return { x, y: yOf(value), value, label: labels[index] ?? "" };
+  });
+  const line = points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="h-auto w-full" aria-hidden="true" style={{ fontFamily: "Outfit, sans-serif" }}>
+      {ticks.map((tick) => {
+        const y = yOf(tick);
+        return (
+          <g key={tick}>
+            <line x1={left} y1={y} x2={w - right} y2={y} stroke="var(--color-line)" strokeWidth="1" />
+            {full && (
+              <text x={left - 6} y={y + 4} textAnchor="end" fontSize="11" fill="var(--color-ink)">
+                {tick}
+              </text>
+            )}
+          </g>
+        );
+      })}
+      <line x1={left} y1={top} x2={left} y2={base} stroke="var(--color-ink)" strokeWidth="1.6" />
+      <line x1={left} y1={base} x2={w - right} y2={base} stroke="var(--color-ink)" strokeWidth="1.6" />
+      {mode === "bars" &&
+        values.map((value, index) => {
+          const barW = Math.min(full ? 36 : 18, slot - (full ? 16 : 8));
+          const x = left + index * slot + (slot - barW) / 2;
+          const y = yOf(value);
+          return (
+            <rect key={labels[index] ?? index} x={x} y={y} width={barW} height={Math.max(0, base - y)} rx={full ? 6 : 4} fill={CHART[index % CHART.length]} />
+          );
+        })}
+      {mode === "polygon" && (
+        <g>
+          <path d={line} fill="none" stroke="var(--color-accent)" strokeWidth={full ? 3 : 2.2} strokeLinejoin="round" strokeLinecap="round" />
+          {points.map((point, index) => (
+            <g key={point.label || index}>
+              <circle cx={point.x} cy={point.y} r={full ? 5.5 : 3.5} fill={CHART[index % CHART.length]} stroke="var(--color-ink)" strokeWidth="1.4" />
+              {full && (
+                <text x={point.x} y={point.y - 10} textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--color-ink)">
+                  {point.value}
+                </text>
+              )}
+            </g>
+          ))}
+        </g>
+      )}
+      {points.map((point) => (
+        <text key={`l-${point.label}`} x={point.x} y={base + (full ? 18 : 14)} textAnchor="middle" fontSize={full ? 12 : 9} fill="var(--color-ink)">
+          {point.label}
+        </text>
+      ))}
+    </svg>
+  );
+}
+
+function pieSlice(cx: number, cy: number, r: number, start: number, end: number): string {
+  const large = end - start > Math.PI ? 1 : 0;
+  const x0 = cx + r * Math.cos(start);
+  const y0 = cy + r * Math.sin(start);
+  const x1 = cx + r * Math.cos(end);
+  const y1 = cy + r * Math.sin(end);
+  return `M ${cx} ${cy} L ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1} Z`;
+}
+
+function PieGraph({ slices, variant }: { slices: { label: string; value: number }[]; variant: Variant }) {
+  const full = variant === "full";
+  const w = full ? 340 : 160;
+  const h = full ? 210 : 120;
+  const cx = full ? 92 : 80;
+  const cy = full ? 108 : 60;
+  const r = full ? 72 : 46;
+  const total = slices.reduce((sum, slice) => sum + slice.value, 0) || 1;
+  let angle = -Math.PI / 2;
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="h-auto w-full" aria-hidden="true" style={{ fontFamily: "Outfit, sans-serif" }}>
+      {slices.map((slice, index) => {
+        const next = angle + (slice.value / total) * Math.PI * 2;
+        const d = pieSlice(cx, cy, r, angle, next - 0.001);
+        angle = next;
+        return <path key={slice.label} d={d} fill={CHART[index % CHART.length]} stroke="var(--color-well)" strokeWidth="2" />;
+      })}
+      {full &&
+        slices.map((slice, index) => (
+          <g key={`key-${slice.label}`}>
+            <rect x="188" y={28 + index * 36} width="16" height="16" rx="4" fill={CHART[index % CHART.length]} />
+            <text x="212" y={41 + index * 36} fontSize="14" fill="var(--color-ink)">
+              {slice.label}
+            </text>
+            <text x="328" y={41 + index * 36} fontSize="14" fontWeight="700" textAnchor="end" fill="var(--color-ink)">
+              {slice.value}
+            </text>
+          </g>
+        ))}
+    </svg>
+  );
+}
+
+function Chips({ values }: { values: number[] }) {
+  return (
+    <span className="flex flex-wrap justify-center gap-2 px-2 py-3">
+      {values.map((value, index) => (
+        <span
+          key={`${value}-${index}`}
+          className={`flex size-12 items-center justify-center rounded-2xl font-display text-2xl ${CHIP[index % CHIP.length]}`}
+        >
+          {value}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function TableFig({ headers, rows }: { headers: [string, string]; rows: [string, string][] }) {
+  return (
+    <table className="w-full border-collapse text-left text-sm text-ink">
+      <thead>
+        <tr className="text-accent">
+          <th className="px-3 py-2 font-semibold">{headers[0]}</th>
+          <th className="px-3 py-2 text-right font-semibold">{headers[1]}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row) => (
+          <tr key={row[0]} className="border-t border-line">
+            <td className="px-3 py-2 font-medium">{row[0]}</td>
+            <td className="px-3 py-2 text-right font-semibold tabular-nums">{row[1]}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+export function GraphFigure({ figure, variant = "full" }: { figure: Figure; variant?: Variant }) {
+  if (figure.kind === "bars") {
+    return <Categorical values={figure.values} labels={figure.labels} variant={variant} mode="bars" />;
+  }
+  if (figure.kind === "polygon") {
+    return <Categorical values={figure.values} labels={figure.labels} variant={variant} mode="polygon" />;
+  }
+  if (figure.kind === "pie") return <PieGraph slices={figure.slices} variant={variant} />;
+  if (figure.kind === "chips") return <Chips values={figure.values} />;
+  return <TableFig headers={figure.headers} rows={figure.rows} />;
+}
+
+// ========== src/styles.css ==========
+
+@import "tailwindcss";
+
+@theme {
+  --color-paper: #102033;
+  --color-sheet: #183049;
+  --color-well: #0c1a2c;
+  --color-ink: #f4f7fb;
+  --color-muted: #b7c6d8;
+  --color-line: #2c4666;
+  --color-accent: #ffb703;
+  --color-accent-ink: #1c1403;
+  --color-good: #7dffa1;
+  --color-good-soft: #143528;
+  --color-bad: #ffb4a8;
+  --color-bad-soft: #3a1c22;
+  --color-barras: #ff8a3d;
+  --color-barras-ink: #2a1204;
+  --color-circular: #ffe14a;
+  --color-circular-ink: #2a2204;
+  --color-poligono: #3ddec8;
+  --color-poligono-ink: #042824;
+  --color-rango: #ff6b6b;
+  --color-rango-ink: #2a0808;
+  --color-media: #7eb6ff;
+  --color-media-ink: #061428;
+  --color-moda: #ff7eb3;
+  --color-moda-ink: #2a0816;
+  --color-mediana: #8ee86a;
+  --color-mediana-ink: #06200c;
+  --color-chart-1: #ff8a3d;
+  --color-chart-2: #3ddec8;
+  --color-chart-3: #ffe14a;
+  --color-chart-4: #ff7eb3;
+  --color-chart-5: #7eb6ff;
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    min-height: 100%;
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    background-color: var(--color-paper);
+    background-image:
+      linear-gradient(to right, color-mix(in srgb, var(--color-ink) 8%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in srgb, var(--color-ink) 8%, transparent) 1px, transparent 1px);
+    background-size: 28px 28px;
+    line-height: 1.5;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px var(--color-paper);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
